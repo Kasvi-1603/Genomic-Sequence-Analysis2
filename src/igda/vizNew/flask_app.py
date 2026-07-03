@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 from collections import Counter
 from dataclasses import asdict
@@ -25,9 +26,14 @@ _VIZNEW_ROOT = Path(__file__).resolve().parent
 _UPLOAD_ROOT = Path(tempfile.gettempdir()) / "igda_viznew_uploads"
 _SESSION_TEXT_DIR = Path(tempfile.gettempdir()) / "igda_viznew_session_text"
 _SESSION_REPORT_DIR = Path(tempfile.gettempdir()) / "igda_viznew_session_reports"
+# Render's free tier runs on a heavily shared/throttled CPU — cap the workload
+# there so a single request doesn't run past gunicorn's worker timeout.
+_LITE_MODE = bool(os.environ.get("RENDER") or os.environ.get("IGDA_LITE_MODE"))
+_TRIALS = 1 if _LITE_MODE else 3
+_MULTI_N_TRIALS = 1 if _LITE_MODE else 2
 # Keep web benchmarks responsive on large FASTA files
-_MAX_SEQUENCE_LEN = 50_000
-_MULTI_N_SIZES = (2_000, 10_000, 25_000)
+_MAX_SEQUENCE_LEN = 12_000 if _LITE_MODE else 50_000
+_MULTI_N_SIZES = (1_000, 4_000, 8_000) if _LITE_MODE else (2_000, 10_000, 25_000)
 _MATCHERS_SCALING = ["naive", "kmp", "horspool", "ahocorasick"]
 _EXACT_MATCHER_IDS = ("naive", "kmp", "horspool", "ahocorasick")
 _TEXT_PREVIEW_LEN = 100_000
@@ -421,7 +427,7 @@ def _multi_n_benchmark(text: str, patterns: list[str], max_edits: int) -> list[d
             algo_ids.append("edit_distance")
         cfg = RunConfig(
             warmup=0,
-            trials=2,
+            trials=_MULTI_N_TRIALS,
             selected_algorithm_ids=algo_ids,
             selected_compression_ids=[],
             max_edits=max_edits,
@@ -746,7 +752,7 @@ def create_app() -> Flask:
         max_edits = int(request.form.get("max_edits", 1))
         config = RunConfig(
             warmup=0,
-            trials=3,
+            trials=_TRIALS,
             selected_algorithm_ids=[],
             selected_compression_ids=[],
             max_edits=max_edits,
@@ -779,7 +785,7 @@ def create_app() -> Flask:
                 "compression_artifacts": artifacts,
                 "benchmark_input_config": {
                     "max_sequence_len": _MAX_SEQUENCE_LEN,
-                    "trials": 3,
+                    "trials": _TRIALS,
                     "max_edits": max_edits,
                 },
             }
