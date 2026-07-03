@@ -1,0 +1,96 @@
+/* Figma DNA — layered Lottie (helix + FX + signal) */
+
+.figma-dna {
+  --dna-bg: #191d22;
+}
+
+.figma-dna--home {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--dna-bg);
+}
+
+.dna-lottie-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.dna-lottie-layer {
+  position: absolute;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.dna-lottie-layer svg {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible;
+}
+
+/* Helix structure (Simple) */
+.dna-lottie-layer--simple {
+  --helix-w: 1445;
+  --helix-h: 1822;
+  width: min(88%, 500px);
+  aspect-ratio: var(--helix-w) / var(--helix-h);
+  max-height: 90vh;
+  z-index: 1;
+  filter: drop-shadow(0 0 36px rgba(25, 182, 217, 0.22));
+}
+
+/* Masks / glow (Animaed) — full artboard, same center */
+.dna-lottie-layer--fx {
+  width: min(92%, 860px);
+  aspect-ratio: 1920 / 1080;
+  max-height: 90vh;
+  z-index: 2;
+}
+
+.dna-lottie-layer--signal {
+  left: 10%;
+  right: 14%;
+  bottom: 10%;
+  height: 32px;
+  max-width: 480px;
+  z-index: 3;
+}
+
+.dna-lottie-layer--signal svg {
+  filter: drop-shadow(0 0 10px rgba(25, 182, 217, 0.45));
+}
+
+@media (max-width: 900px) {
+  .dna-lottie-layer--simple {
+    width: min(85vw, 380px);
+    max-height: 50vh;
+  }
+
+  .dna-lottie-layer--fx {
+    width: min(95vw, 480px);
+    max-height: 50vh;
+  }
+
+  .dna-lottie-layer--signal {
+    bottom: 6%;
+    height: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dna-lottie-layer--simple {
+    filter: none;
+  }
+
+  .dna-lottie-layer--signal svg {
+    filter: none;
+  }
+}

@@ -1,0 +1,213 @@
+.btn-secondary--compact {
+
+  padding: 6px 12px;
+
+  font-size: 12px;
+
+  white-space: nowrap;
+
+}
+
+
+
+.compression-artifacts-table td:last-child {
+
+  text-align: right;
+
+}
+
+
+
+.codec-grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+
+  gap: 16px;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.codec-card {
+
+  background: var(--bg-card);
+
+  border: 1px solid var(--border);
+
+  border-radius: 12px;
+
+  padding: 20px;
+
+  position: relative;
+
+  overflow: hidden;
+
+}
+
+
+
+.codec-card::before {
+
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+
+  left: 0;
+
+  right: 0;
+
+  height: 3px;
+
+}
+
+
+
+.codec-card.codec-huffman::before {
+
+  background: var(--ws-highlight, #ef9f27);
+
+}
+
+
+
+.codec-card.codec-rle::before {
+
+  background: var(--ws-teal, #5dcaa5);
+
+}
+
+
+
+.codec-card.best {
+
+  border-color: rgba(239, 159, 39, 0.4);
+
+  box-shadow: 0 0 24px rgba(239, 159, 39, 0.08);
+
+}
+
+
+
+.codec-badge {
+
+  position: absolute;
+
+  top: 12px;
+
+  right: 12px;
+
+  font-size: 10px;
+
+  color: var(--ws-highlight, #ef9f27);
+
+  font-weight: 600;
+
+}
+
+
+
+.codec-card h3 {
+
+  font-size: 18px;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.codec-saved {
+
+  font-size: 28px;
+
+  font-weight: 700;
+
+}
+
+
+
+.codec-huffman .codec-saved {
+
+  color: var(--ws-highlight, #ef9f27);
+
+}
+
+
+
+.codec-rle .codec-saved {
+
+  color: var(--ws-teal, #5dcaa5);
+
+}
+
+
+
+.codec-stats {
+
+  display: grid;
+
+  grid-template-columns: 1fr 1fr 1fr;
+
+  gap: 8px;
+
+  margin-top: 16px;
+
+  font-size: 12px;
+
+}
+
+
+
+.codec-stats span {
+
+  color: var(--text-tertiary);
+
+  display: block;
+
+}
+
+
+
+.codec-stats strong {
+
+  color: var(--text-primary);
+
+  font-family: "JetBrains Mono", monospace;
+
+}
+
+
+
+#huffman-tree {
+
+  min-height: 320px;
+
+  width: 100%;
+
+  overflow: auto;
+
+}
+
+
+
+.freq-bar {
+
+  display: inline-block;
+
+  height: 8px;
+
+  border-radius: 2px;
+
+  background: var(--ws-highlight, #ef9f27);
+
+  vertical-align: middle;
+
+}
+
+

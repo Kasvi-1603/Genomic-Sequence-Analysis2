@@ -1,0 +1,210 @@
+{% extends "viz2_base.html" %}
+{% block content %}
+<div class="card">
+  <h1 class="accent">Analysis</h1>
+  <p class="muted">This screen combines your chosen matcher/compression with independent all-algorithm evidence.</p>
+</div>
+
+<div class="row">
+  <div class="card">
+    <h3 class="accent">Matcher Complexity Cheat Sheet</h3>
+    <table>
+      <thead><tr><th>Algo</th><th>Time</th><th>Space</th></tr></thead>
+      <tbody>
+        {% for info in algo_infos %}
+        <tr>
+          <td>{{ info.id }}</td>
+          <td>{{ info.time_complexity }}</td>
+          <td>{{ info.space_complexity }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h3 class="accent">Compression Complexity Cheat Sheet</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Time</th><th>Space</th></tr></thead>
+      <tbody>
+        {% for info in comp_infos %}
+        <tr>
+          <td>{{ info.id }}</td>
+          <td>{{ info.time_complexity }}</td>
+          <td>{{ info.space_complexity }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if missing_pattern or missing_compression %}
+<div class="card">
+  <h3 class="accent">Run Coverage</h3>
+  {% if missing_pattern %}
+    <p class="warn">Pattern benchmark not run yet for: {{ missing_pattern|join(", ") }}</p>
+  {% endif %}
+  {% if missing_compression %}
+    <p class="warn">Compression benchmark not run yet for: {{ missing_compression|join(", ") }}</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if per_item_analysis %}
+<div class="card">
+  <h2 class="accent">Per File Analysis</h2>
+  <p class="muted">Each file gets its own winner summary so two different files show two different analyses.</p>
+</div>
+
+{% for item in per_item_analysis %}
+<div class="card">
+  <h3 class="accent">{{ item.item_label }}</h3>
+  <p class="muted"><span class="tag">{{ item.item_mode }}</span> {{ item.chars }} chars</p>
+  <div class="row">
+    <div class="card">
+      <h4 class="accent">Matcher (this file)</h4>
+      {% if item.pattern_primary %}
+      <p>Selected matcher: <span class="tag">{{ item.pattern_primary.algorithm_id }}</span> {{ "%.3f"|format(item.pattern_primary.time_ms_median) }} ms</p>
+      {% endif %}
+      <p>Best matcher for this file: <strong>{{ item.pattern_fastest.algorithm_id }}</strong> ({{ "%.3f"|format(item.pattern_fastest.time_ms_median) }} ms)</p>
+    </div>
+    <div class="card">
+      <h4 class="accent">Compression (this file)</h4>
+      {% if item.compression_primary %}
+      <p>Selected compressor: <span class="tag">{{ item.compression_primary.compression_id }}</span> {{ "%.2f"|format(item.compression_primary.percent_saved) }}% saved</p>
+      {% endif %}
+      <p>Best compressor by speed: <strong>{{ item.compression_fastest.compression_id }}</strong> ({{ "%.3f"|format(item.compression_fastest.time_ms_median) }} ms)</p>
+      <p>Best compressor by savings: <strong>{{ item.compression_best_saved.compression_id }}</strong> ({{ "%.2f"|format(item.compression_best_saved.percent_saved) }}%)</p>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="row">
+  <div class="card">
+    <h3 class="accent">Pattern summary</h3>
+    {% if pattern_primary %}
+      <p>Selected: <span class="tag">{{ pattern_primary.algorithm_id }}</span> in {{ "%.3f"|format(pattern_primary.time_ms_median) }} ms</p>
+    {% else %}
+      <p class="muted">No selected matcher result yet.</p>
+    {% endif %}
+    {% if pattern_winner %}
+      <p>Independent fastest: <strong>{{ pattern_winner.algorithm_id }}</strong> ({{ "%.3f"|format(pattern_winner.time_ms_median) }} ms)</p>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h3 class="accent">Compression summary</h3>
+    {% if compression_primary %}
+      <p>Selected: <span class="tag">{{ compression_primary.compression_id }}</span> saved {{ "%.2f"|format(compression_primary.percent_saved) }}%</p>
+    {% else %}
+      <p class="muted">No selected compression result yet.</p>
+    {% endif %}
+    {% if compression_winner %}
+      <p>Independent fastest: <strong>{{ compression_winner.compression_id }}</strong> ({{ "%.3f"|format(compression_winner.time_ms_median) }} ms)</p>
+    {% endif %}
+    {% if compression_best_saved %}
+      <p>Highest space saving: <strong>{{ compression_best_saved.compression_id }}</strong> ({{ "%.2f"|format(compression_best_saved.percent_saved) }}%)</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h3 class="accent">Tree Concentration Graph</h3>
+  <p class="muted">Root splits into matcher speed concentration and compression saving concentration.</p>
+  <svg id="treeViz" width="100%" height="320"></svg>
+</div>
+
+{% if pattern_rows %}
+<div class="card">
+  <h3 class="accent">All matcher rows</h3>
+  <table>
+    <thead><tr><th>Algorithm</th><th>Median ms</th><th>Kind</th><th>Match count</th></tr></thead>
+    <tbody>
+      {% for row in pattern_rows %}
+      <tr>
+        <td>{{ row.algorithm_id }}</td>
+        <td>{{ "%.3f"|format(row.time_ms_median) }}</td>
+        <td>{{ row.match_kind }}</td>
+        <td>{{ row.match_count }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if compression_rows %}
+<div class="card">
+  <h3 class="accent">All compression rows</h3>
+  <table>
+    <thead><tr><th>Compression</th><th>Median ms</th><th>Saved %</th><th>Ratio</th></tr></thead>
+    <tbody>
+      {% for row in compression_rows %}
+      <tr>
+        <td>{{ row.compression_id }}</td>
+        <td>{{ "%.3f"|format(row.time_ms_median) }}</td>
+        <td>{{ "%.2f"|format(row.percent_saved) }}</td>
+        <td>{{ "%.4f"|format(row.ratio) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<script>
+  const data = {{ tree_data|safe }};
+  const svg = document.getElementById("treeViz");
+  const width = svg.clientWidth || 800;
+  const height = 320;
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+  function line(x1, y1, x2, y2, color="#8fb5ff") {
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+    l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+    l.setAttribute("stroke", color); l.setAttribute("stroke-width", "1.4");
+    svg.appendChild(l);
+  }
+
+  function circle(x, y, r, color, label, value) {
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("cx", x); c.setAttribute("cy", y); c.setAttribute("r", r);
+    c.setAttribute("fill", color); c.setAttribute("fill-opacity", "0.82");
+    svg.appendChild(c);
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    t.setAttribute("x", x + 8); t.setAttribute("y", y + 4);
+    t.setAttribute("fill", "#d8e7ff"); t.setAttribute("font-size", "12");
+    t.textContent = `${label} (${value})`;
+    svg.appendChild(t);
+  }
+
+  circle(width / 2, 36, 13, "#5ce2ff", "Run", "");
+
+  const branchA = { x: width * 0.3, y: 110, name: "Pattern", color: "#5ce2ff" };
+  const branchB = { x: width * 0.7, y: 110, name: "Compression", color: "#b679ff" };
+  line(width / 2, 36, branchA.x, branchA.y);
+  line(width / 2, 36, branchB.x, branchB.y);
+  circle(branchA.x, branchA.y, 10, branchA.color, branchA.name, "");
+  circle(branchB.x, branchB.y, 10, branchB.color, branchB.name, "");
+
+  const pattern = data.pattern || [];
+  const compression = data.compression || [];
+
+  pattern.forEach((node, i) => {
+    const x = width * 0.12 + i * ((width * 0.36) / Math.max(pattern.length, 1));
+    const y = 220;
+    line(branchA.x, branchA.y, x, y);
+    circle(x, y, Math.max(5, Math.min(16, node.value / 20)), "#5ce2ff", node.name, node.value);
+  });
+
+  compression.forEach((node, i) => {
+    const x = width * 0.55 + i * ((width * 0.36) / Math.max(compression.length, 1));
+    const y = 220;
+    line(branchB.x, branchB.y, x, y);
+    circle(x, y, Math.max(5, Math.min(16, node.value / 4)), "#b679ff", node.name, node.value);
+  });
+</script>
+{% endblock %}
+

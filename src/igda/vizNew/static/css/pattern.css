@@ -1,0 +1,187 @@
+.winner-grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+
+  gap: 16px;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.winner-card {
+
+  background: var(--bg-card);
+
+  border: 1px solid var(--border);
+
+  border-radius: 12px;
+
+  padding: 20px;
+
+  position: relative;
+
+  overflow: hidden;
+
+}
+
+
+
+.winner-card::before {
+
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+
+  left: 0;
+
+  right: 0;
+
+  height: 3px;
+
+}
+
+
+
+.winner-card.exact {
+
+  border-color: rgba(239, 159, 39, 0.35);
+
+}
+
+
+
+.winner-card.exact::before {
+
+  background: var(--ws-highlight, #ef9f27);
+
+}
+
+
+
+.winner-card.approx {
+
+  border-color: rgba(142, 13, 60, 0.4);
+
+}
+
+
+
+.winner-card.approx::before {
+
+  background: var(--ws-accent, #8e0d3c);
+
+}
+
+
+
+.winner-card h3 {
+
+  font-size: 11px;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  color: var(--text-tertiary);
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.winner-card .algo-name {
+
+  font-size: 20px;
+
+  font-weight: 600;
+
+  color: var(--text-primary);
+
+}
+
+
+
+.winner-card .stats {
+
+  font-size: 13px;
+
+  color: var(--text-secondary);
+
+  margin-top: 6px;
+
+}
+
+
+
+.pos-strip {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  margin-top: 8px;
+
+}
+
+
+
+.pos-chip {
+
+  font-family: "JetBrains Mono", monospace;
+
+  font-size: 11px;
+
+  padding: 3px 8px;
+
+  border-radius: 4px;
+
+  background: rgba(142, 13, 60, 0.12);
+
+  border: 1px solid rgba(142, 13, 60, 0.22);
+
+  color: var(--text-mono);
+
+}
+
+
+
+.pos-chip:nth-child(3n + 2) {
+
+  background: rgba(239, 159, 39, 0.1);
+
+  border-color: rgba(239, 159, 39, 0.22);
+
+}
+
+
+
+.pos-chip:nth-child(3n) {
+
+  background: rgba(93, 202, 165, 0.1);
+
+  border-color: rgba(93, 202, 165, 0.22);
+
+}
+
+
+
+.chart-note {
+
+  font-size: 12px;
+
+  color: var(--text-tertiary);
+
+  margin-top: 8px;
+
+}
+
+

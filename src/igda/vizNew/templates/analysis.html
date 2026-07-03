@@ -1,0 +1,570 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/analysis.css') }}" />
+{% endblock %}
+
+
+
+{% block content %}
+
+<header class="page-header">
+
+  <h1 class="page-title">Analysis &amp; verdict</h1>
+
+  {% if has_benchmark and meta %}
+
+  <p class="page-sub">
+
+    {{ "{:,}".format(meta.length) }} chars · {{ meta.patterns | length }} patterns · {{ meta.filename }}
+
+  </p>
+
+  {% else %}
+
+  <p class="page-sub">Scaling behaviour, theory vs empirical timings, and algorithm guidance.</p>
+
+  {% endif %}
+
+</header>
+
+
+
+{% if not has_benchmark %}
+
+{% include "_empty_benchmark.html" %}
+
+{% else %}
+
+
+
+{% if benchmark.best_exact_matcher and benchmark.best_compression %}
+
+<div class="verdict-grid">
+
+  <div class="verdict-card verdict-card--match">
+
+    <div class="label">Best exact matcher</div>
+
+    <div class="value">{{ benchmark.best_exact_matcher.algorithm_name or benchmark.best_exact_matcher.algorithm }}</div>
+
+  </div>
+
+  <div class="verdict-card verdict-card--approx">
+
+    <div class="label">Best approximate</div>
+
+    <div class="value">{% if benchmark.best_approx_matcher %}{{ benchmark.best_approx_matcher.algorithm_name or benchmark.best_approx_matcher.algorithm }}{% else %}—{% endif %}</div>
+
+  </div>
+
+  <div class="verdict-card verdict-card--compress">
+
+    <div class="label">Best compression</div>
+
+    <div class="value">{{ (benchmark.best_compression.algorithm or '') | upper }}</div>
+
+  </div>
+
+</div>
+
+<p class="page-sub verdict-summary">
+
+  For this input, prefer <strong>{{ benchmark.best_exact_matcher.algorithm_name or benchmark.best_exact_matcher.algorithm }}</strong>
+
+  for exact motif search. Use edit distance when mutations or errors are expected.
+
+</p>
+
+{% endif %}
+
+
+
+{% if compression_artifacts or benchmark.compression_rows %}
+
+<div class="table-card">
+
+  <div class="card-title">Compression benchmark comparison</div>
+
+  <table class="results-table">
+
+    <thead>
+
+      <tr>
+
+        <th>Algorithm</th>
+
+        <th class="num">Original</th>
+
+        <th class="num">Compressed</th>
+
+        <th class="num">Ratio</th>
+
+        <th class="num">Runtime</th>
+
+        <th class="num">Space saved</th>
+
+        <th></th>
+
+      </tr>
+
+    </thead>
+
+    <tbody>
+
+      {% if compression_artifacts %}
+
+      {% for art in compression_artifacts %}
+
+      <tr>
+
+        <td>{{ art.algorithm_name or art.algorithm }}</td>
+
+        <td class="num">{{ "{:,}".format(art.original_size) }} B</td>
+
+        <td class="num">{{ "{:,}".format(art.compressed_size) }} B</td>
+
+        <td class="num">{{ "%.2f"|format(art.compression_ratio) }}×</td>
+
+        <td class="num">{{ "%.2f"|format(art.compression_time_ms) }} ms</td>
+
+        <td class="num">{{ "%.1f"|format(art.space_saved_percent) }}%</td>
+
+        <td><a class="btn-secondary btn-secondary--compact" href="{{ art.download_route }}">Download</a></td>
+
+      </tr>
+
+      {% endfor %}
+
+      {% else %}
+
+      {% for row in benchmark.compression_rows %}
+
+      <tr>
+
+        <td>{{ row.compression_name or row.algorithm }}</td>
+
+        <td class="num">{{ "{:,}".format(row.original_bytes) }} B</td>
+
+        <td class="num">{{ "{:,}".format(row.compressed_bytes) }} B</td>
+
+        <td class="num">{% if row.original_bytes %}{{ "%.2f"|format(row.original_bytes / (row.compressed_bytes or 1)) }}×{% else %}—{% endif %}</td>
+
+        <td class="num">{{ "%.2f"|format(row.time_ms_median) }} ms</td>
+
+        <td class="num">{{ "%.1f"|format(row.percent_saved) }}%</td>
+
+        <td>—</td>
+
+      </tr>
+
+      {% endfor %}
+
+      {% endif %}
+
+    </tbody>
+
+  </table>
+
+</div>
+
+{% endif %}
+
+
+
+<div class="chart-card">
+
+  <div class="card-title">Runtime vs input length</div>
+
+  <div class="chart-wrap">
+
+    <canvas id="growth-chart"></canvas>
+
+  </div>
+
+</div>
+
+
+
+<div class="table-card">
+
+  <div class="card-title">Theory vs empirical</div>
+
+  <table class="results-table">
+
+    <thead>
+
+      <tr>
+
+        <th>Algorithm</th>
+
+        <th>Theoretical time</th>
+
+        <th class="num">Actual (ms)</th>
+
+        <th class="num">Speedup vs naive</th>
+
+      </tr>
+
+    </thead>
+
+    <tbody>
+
+      {% set naive_time = benchmark.matcher_rows | selectattr('algorithm', 'equalto', 'naive') | map(attribute='time_ms_median') | first | default(1) %}
+
+      {% for row in benchmark.matcher_rows %}
+
+      <tr>
+
+        <td>{{ row.algorithm_name or row.algorithm }}</td>
+
+        <td>
+
+          {% if row.algorithm == 'naive' %}O(n·m·t)
+
+          {% elif row.algorithm == 'kmp' %}O(n·t + Σm)
+
+          {% elif row.algorithm == 'horspool' %}O(n·m) avg sublinear
+
+          {% elif row.algorithm == 'ahocorasick' %}O(n + m + z)
+
+          {% elif row.algorithm == 'edit_distance' %}O(n·m²)
+
+          {% else %}—{% endif %}
+
+        </td>
+
+        <td class="num">{{ "%.2f"|format(row.time_ms_median) }}</td>
+
+        <td class="num">
+
+          {% if row.time_ms_median > 0 and row.algorithm != 'naive' %}
+
+          {{ "%.1f"|format(naive_time / row.time_ms_median) }}×
+
+          {% else %}1.0×{% endif %}
+
+        </td>
+
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+
+  </table>
+
+</div>
+
+
+
+<div class="chart-card">
+
+  <div class="card-title">When to use which algorithm</div>
+
+  <div class="guidance-grid">
+
+    <div class="guidance-card guidance-card--naive"><h4>Naive</h4><p class="tagline">Debugging, tiny inputs</p><p>Baseline for correctness checks.</p></div>
+
+    <div class="guidance-card guidance-card--kmp"><h4>KMP</h4><p class="tagline">Linear, predictable</p><p>Guaranteed linear scan per pattern.</p></div>
+
+    <div class="guidance-card guidance-card--horspool"><h4>Horspool</h4><p class="tagline">Long patterns</p><p>Sublinear skips on DNA alphabets.</p></div>
+
+    <div class="guidance-card guidance-card--ac"><h4>Aho–Corasick</h4><p class="tagline">Many patterns</p><p>Single pass for all motifs.</p></div>
+
+    <div class="guidance-card guidance-card--edit"><h4>Edit distance</h4><p class="tagline">Mutations / errors</p><p>Near-matches within max edit distance.</p></div>
+
+  </div>
+
+</div>
+
+
+
+<div class="table-card">
+
+  <div class="card-title">Input characteristics</div>
+
+  <div class="meta-grid">
+
+    <div class="meta-item"><span class="k">Length</span><span class="v">{{ "{:,}".format(meta.length) }}</span></div>
+
+    <div class="meta-item"><span class="k">Patterns</span><span class="v mono">{{ meta.patterns | join(', ') }}</span></div>
+
+    <div class="meta-item"><span class="k">Max edits</span><span class="v">{{ meta.max_edits }}</span></div>
+
+    <div class="meta-item"><span class="k">Source</span><span class="v">{{ meta.source }} — {{ meta.filename }}</span></div>
+
+  </div>
+
+</div>
+
+{% if mutation_report %}
+<div class="mutation-report-section">
+
+  <div class="mut-section-header">
+    <div class="mut-section-title">
+      <i class="ti ti-dna" aria-hidden="true"></i>
+      Mutation report
+    </div>
+    <span class="mut-section-sub">
+      {{ meta.filename }} ·
+      max_edits = {{ mutation_report.max_edits }} ·
+      {{ meta.patterns | join(', ') }}
+    </span>
+  </div>
+
+  {% if mutation_report.no_qualifying_patterns %}
+  <div class="mut-warn-box">
+    <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+    <div>
+      <strong>Mutation detection requires patterns ≥ 6 bases.</strong>
+      Your patterns ({{ mutation_report.skipped_short_patterns | join(', ') }})
+      are too short — short k-mers produce thousands of false positives with
+      approximate matching. Try TATAAA, GCATCG, or AATAAA instead.
+    </div>
+  </div>
+  {% elif mutation_report.skipped_short_patterns %}
+  <div class="mut-info-box">
+    <i class="ti ti-info-circle" aria-hidden="true"></i>
+    Patterns shorter than 6 bases
+    ({{ mutation_report.skipped_short_patterns | join(', ') }})
+    were excluded from mutation detection — they produce noise hits
+    with approximate matching. Mutation report covers:
+    {{ mutation_report.qualifying_patterns | join(', ') }}.
+  </div>
+  {% endif %}
+
+  <div class="mut-note">
+    <i class="ti ti-info-circle" aria-hidden="true"></i>
+    Positions where EditDistance found a near-match but all exact matchers
+    found nothing within ±2 bases. Patterns under 6 bases are used for
+    exact matching only — excluded here to avoid noise.
+  </div>
+
+  <div class="mut-stats-grid">
+    <div class="mut-stat">
+      <div class="mut-stat-val coral">{{ mutation_report.total }}</div>
+      <div class="mut-stat-lbl">Mutation sites</div>
+    </div>
+    <div class="mut-stat">
+      <div class="mut-stat-val coral">{{ mutation_report.snp_count }}</div>
+      <div class="mut-stat-lbl">Substitutions (SNPs)</div>
+    </div>
+    <div class="mut-stat">
+      <div class="mut-stat-val amber">{{ mutation_report.del_count }}</div>
+      <div class="mut-stat-lbl">Deletions</div>
+    </div>
+    <div class="mut-stat">
+      <div class="mut-stat-val teal">{{ mutation_report.exact_total }}</div>
+      <div class="mut-stat-lbl">Exact (healthy) hits</div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <h3 class="card-title">Mutations by pattern</h3>
+    <div class="chart-wrap mut-chart-wrap">
+      <canvas id="mut-pattern-chart"></canvas>
+    </div>
+  </div>
+
+  {% if mutation_report.heatmap %}
+  <div class="table-card mut-heatmap-card">
+    <div class="mut-detail-header">
+      <h3 class="card-title">Motif density along sequence</h3>
+      <div class="chart-toggle mut-heatmap-toggle" role="group" aria-label="Heatmap layer">
+        <button type="button" class="active" id="heatmap-exact" data-heatmap-mode="exact">
+          Exact hits
+        </button>
+        <button type="button" id="heatmap-mutation" data-heatmap-mode="mutation"
+          {% if mutation_report.no_qualifying_patterns %}disabled title="Requires patterns ≥ 6 bases"{% endif %}>
+          Mutation-only hits
+        </button>
+      </div>
+    </div>
+    <p class="chart-note mut-heatmap-note">
+      Binned across {{ "{:,}".format(mutation_report.heatmap.sequence_length) }} chars
+      ({{ mutation_report.heatmap.num_bins }} windows × ~{{ "{:,}".format(mutation_report.heatmap.bin_width) }} bp).
+      Brighter cells = more hits in that region.
+    </p>
+    <div class="mut-heatmap-scroll">
+      <div id="mut-heatmap-root" class="mut-heatmap-root" aria-label="Motif density heatmap"></div>
+    </div>
+    <div class="mut-heatmap-footer">
+      <span class="mut-heatmap-axis-label">Sequence position →</span>
+      <div class="mut-heatmap-legend" id="mut-heatmap-legend">
+        <span class="mut-heatmap-legend-low">0</span>
+        <span class="mut-heatmap-legend-bar" id="mut-heatmap-legend-bar"></span>
+        <span class="mut-heatmap-legend-high" id="mut-heatmap-legend-max">—</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="table-card">
+    <h3 class="card-title">Exact vs approximate coverage</h3>
+    <div class="mut-coverage-grid">
+      <div class="coverage-box coverage-exact">
+        <div class="coverage-val">{{ mutation_report.exact_total }}</div>
+        <div class="coverage-lbl">Exact match hits</div>
+        <div class="coverage-desc">Clean motif occurrences. Found by KMP, Horspool, Aho–Corasick at O(n+m) or better.</div>
+        <div class="coverage-bar coverage-bar--teal"></div>
+      </div>
+      <div class="coverage-box coverage-mut">
+        <div class="coverage-val">{{ mutation_report.total }}</div>
+        <div class="coverage-lbl">Mutation sites (EditDistance only)</div>
+        <div class="coverage-desc">
+          {{ "%.1f"|format(mutation_report.total / (mutation_report.total + mutation_report.exact_total) * 100 if (mutation_report.total + mutation_report.exact_total) > 0 else 0) }}%
+          of all hits. Exact matchers would have missed every one of these.
+        </div>
+        <div class="coverage-bar coverage-bar--crimson"></div>
+      </div>
+    </div>
+
+    <div class="mut-insight">
+      <i class="ti ti-bulb" aria-hidden="true"></i>
+      <span>
+        <strong>DAA trade-off:</strong>
+        Exact matchers run in O(n+m+z) but are blind to any sequence variation.
+        EditDistance runs in O(n·m²) — {{ (mutation_report.total + mutation_report.exact_total) }} total
+        hits required ~{{ mutation_report.total }} extra DP computations that exact matching skipped entirely.
+        For genomic anomaly detection, approximate matching is not optional.
+      </span>
+    </div>
+  </div>
+
+  {% if mutation_report.sites %}
+  <div class="table-card">
+    <div class="mut-detail-header">
+      <h3 class="card-title">Mutation sites — detailed</h3>
+      <span class="card-title-count">
+        showing <span id="mut-showing">10</span>
+        of {{ mutation_report.total }}
+        {% if mutation_report.total > 200 %}(capped at 200){% endif %}
+      </span>
+    </div>
+
+    {% for site in mutation_report.sites %}
+    <div class="mut-site-row" data-index="{{ loop.index0 }}"
+         {% if loop.index0 >= 10 %}style="display:none"{% endif %}>
+      <div class="mut-site-left">
+        <span class="mut-pos-badge">pos {{ "{:,}".format(site.pos) }}</span>
+        <span class="mut-type-badge mut-type-{{ site.mutation_type | lower }}">
+          {{ site.mutation_type }}
+        </span>
+        <span class="mut-edit-dist">d = {{ site.edit_dist }}</span>
+      </div>
+
+      <div class="mut-site-right">
+        <div class="mut-pattern-label">
+          Pattern: <span class="mono">{{ site.pattern }}</span>
+        </div>
+        {% if site.seq_window %}
+        <div class="mut-seq-window mono">{{ site.seq_window }}</div>
+        {% endif %}
+        <div class="mut-algo-strip">
+          <div class="algo-strip-miss">
+            <i class="ti ti-x" aria-hidden="true"></i>
+            Exact matchers — no match
+          </div>
+          <div class="algo-strip-hit">
+            <i class="ti ti-check" aria-hidden="true"></i>
+            EditDistance — hit (d={{ site.edit_dist }})
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if mutation_report.sites | length > 10 %}
+    <div class="mut-load-more" id="mut-load-more-wrap">
+      <button type="button" class="btn-secondary" id="mut-load-more">Show 10 more</button>
+      <span class="mut-overflow-note">
+        {{ mutation_report.sites | length }} sites loaded in page ·
+        {{ mutation_report.total }} total found
+      </span>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="mut-accuracy-note">
+    <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+    <div>
+      <strong>Scope note:</strong>
+      This is algorithm-level sequence variant detection, not clinical mutation
+      calling. Results show positions where approximate string matching finds
+      near-matches that exact matching misses — on
+      {{ meta.filename }}
+      ({{ "{:,}".format(meta.length) }} chars). Some sites may be
+      sequencing artefacts or low-complexity repeats rather than biologically
+      significant mutations. For research use only.
+    </div>
+  </div>
+
+</div>
+{% elif meta and meta.max_edits | default(0) < 1 %}
+<div class="table-card mut-disabled-card">
+  <i class="ti ti-dna mut-disabled-icon" aria-hidden="true"></i>
+  <p class="mut-disabled-text">
+    No mutation report — run EditDistance (set max_edits ≥ 1) to enable this section.
+  </p>
+</div>
+{% elif mutation_unavailable %}
+<div class="table-card mut-disabled-card">
+  <i class="ti ti-dna mut-disabled-icon" aria-hidden="true"></i>
+  <p class="mut-disabled-text">
+    Mutation report needs the uploaded sequence. Please
+    <a href="{{ url_for('upload') }}">re-run the benchmark</a>
+    (max_edits ≥ 1) so the sequence is stored for this analysis.
+  </p>
+</div>
+{% endif %}
+
+{% endif %}
+
+
+
+<nav class="page-nav page-nav--workspace" aria-label="Workspace sections">
+
+  <span class="page-nav-label">Jump to</span>
+
+  <a class="btn-secondary" href="{{ url_for('upload') }}">Upload</a>
+
+  <a class="btn-secondary" href="{{ url_for('pattern') }}">Matching</a>
+
+  <a class="btn-secondary" href="{{ url_for('compression') }}">Compression</a>
+
+  {% if has_benchmark %}
+
+  <a class="btn-primary" href="{{ url_for('reset') }}">Run again with new input</a>
+
+  {% endif %}
+
+</nav>
+
+{% endblock %}
+
+
+
+{% block js %}
+
+{% if has_benchmark %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+  const BENCHMARK = {{ benchmark | tojson }};
+  const MULTI_N = {{ multi_n | tojson }};
+  const MUTATION_REPORT = {{ mutation_report | tojson }};
+</script>
+
+<script src="{{ url_for('static', filename='js/analysis.js') }}"></script>
+
+{% endif %}
+
+{% endblock %}
+
+

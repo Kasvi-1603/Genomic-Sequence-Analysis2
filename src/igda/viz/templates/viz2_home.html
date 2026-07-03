@@ -1,0 +1,100 @@
+{% extends "viz2_base.html" %}
+{% block content %}
+<div class="card">
+  <h1 class="accent">Home</h1>
+  <p class="muted">Add text, string, or FASTA into a session dataset. File picker shows filename only.</p>
+  {% if error %}<p class="warn">{{ error }}</p>{% endif %}
+
+  <div class="card" style="max-width: 720px; margin: 14px auto 18px auto;">
+    <canvas id="dnaCanvas" style="display:block; width:100%; height:240px;"></canvas>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="action" value="add_item" />
+    <div class="row">
+      <div>
+        <label>Mode</label>
+        <select name="mode">
+          <option value="text">Text</option>
+          <option value="string">String</option>
+          <option value="fasta">FASTA</option>
+        </select>
+      </div>
+      <div>
+        <label>Label (optional)</label>
+        <input name="label" placeholder="Sample 1" />
+      </div>
+    </div>
+    <label>Upload file</label>
+    <input type="file" name="input_file" />
+    <label>Paste input</label>
+    <textarea name="pasted_input" rows="6" placeholder="Paste raw text or FASTA"></textarea>
+    <button type="submit">Add to batch</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3 class="accent">Current Batch</h3>
+  {% if items %}
+    <table>
+      <thead><tr><th>Label</th><th>Type</th><th>Size</th><th>Preview</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ item.label }}</td>
+        <td><span class="tag">{{ item.mode }}</span></td>
+        <td>{{ item.chars }} chars / {{ item.lines }} lines</td>
+        <td>{{ item.preview }}</td>
+        <td>
+          <form method="post">
+            <input type="hidden" name="action" value="remove_item" />
+            <input type="hidden" name="remove_id" value="{{ item.id }}" />
+            <button type="submit">Remove</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">No dataset items yet.</p>
+  {% endif %}
+  <div class="row">
+    <form method="post">
+      <input type="hidden" name="action" value="clear_items" />
+      <button type="submit">Clear batch</button>
+    </form>
+    <form method="post">
+      <input type="hidden" name="action" value="continue" />
+      <button type="submit">Continue to pattern matching</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById("dnaCanvas");
+  const ctx = canvas.getContext("2d");
+  let t = 0;
+  function draw() {
+    const r = canvas.getBoundingClientRect();
+    canvas.width = r.width * window.devicePixelRatio;
+    canvas.height = r.height * window.devicePixelRatio;
+    ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+    ctx.clearRect(0, 0, r.width, r.height);
+    ctx.strokeStyle = "#5ce2ff";
+    for (let i = 0; i < r.width; i += 16) {
+      const y1 = 80 + Math.sin(t + i * 0.03) * 32;
+      const y2 = 80 + Math.sin(t + i * 0.03 + Math.PI) * 32;
+      ctx.beginPath(); ctx.arc(i, y1, 2, 0, 6.28); ctx.stroke();
+      ctx.beginPath(); ctx.arc(i, y2, 2, 0, 6.28); ctx.stroke();
+      ctx.globalAlpha = 0.2;
+      ctx.beginPath(); ctx.moveTo(i, y1); ctx.lineTo(i, y2); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    t += 0.06;
+    requestAnimationFrame(draw);
+  }
+  draw();
+</script>
+{% endblock %}
+

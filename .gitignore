@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Data / local outputs (add exceptions if you want to commit small sample FASTA)
+data/processed/*
+!data/processed/.gitkeep
+data/raw/*
+!data/raw/.gitkeep
+outputs/
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Frontend build (vizNew helix bundle)
+src/igda/vizNew/frontend/node_modules/
+src/igda/vizNew/frontend/dist/
+
+# OS / editor temp
+~$*
+Thumbs.db
+Desktop.ini
+
+# Local docs / assets
+*.pptx
+*.odt
+*.pdf
+DAA.zip
+*.PNG
+DAA/
+

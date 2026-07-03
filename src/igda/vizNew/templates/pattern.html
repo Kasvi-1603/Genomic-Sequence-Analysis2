@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Pattern matching{% endblock %}
+
+{% block css %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pattern.css') }}" />
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<header class="page-header">
+
+  <h1 class="page-title">Pattern matching results</h1>
+
+  {% if has_benchmark and meta %}
+
+  <p class="page-sub">
+
+    {{ meta.filename }} · {{ "{:,}".format(meta.length) }} chars ·
+
+    {{ meta.patterns | join(', ') }} · 5 trials
+
+  </p>
+
+  {% else %}
+
+  <p class="page-sub">Exact and approximate matcher timings for your uploaded sequence.</p>
+
+  {% endif %}
+
+</header>
+
+
+
+{% if not has_benchmark %}
+
+{% include "_empty_benchmark.html" %}
+
+{% else %}
+
+
+
+<div class="winner-grid">
+
+  {% set exact = benchmark.best_exact_matcher %}
+
+  {% if exact %}
+
+  <div class="winner-card exact">
+
+    <h3>Best exact matcher</h3>
+
+    <div class="algo-name">{{ exact.algorithm_name or exact.algorithm }}</div>
+
+    <p class="stats">
+
+      {{ "%.2f"|format(exact.time_ms_median) }} ms median ·
+
+      {{ exact.match_count }} matches
+
+    </p>
+
+  </div>
+
+  {% endif %}
+
+  {% set approx = benchmark.best_approx_matcher %}
+
+  {% if approx %}
+
+  <div class="winner-card approx">
+
+    <h3>Best approx matcher</h3>
+
+    <div class="algo-name">{{ approx.algorithm_name or approx.algorithm }}</div>
+
+    <p class="stats">
+
+      {{ "%.2f"|format(approx.time_ms_median) }} ms median ·
+
+      {{ approx.match_count }} matches
+
+    </p>
+
+  </div>
+
+  {% endif %}
+
+</div>
+
+
+
+<div class="chart-card">
+
+  <div class="card-title">Runtime comparison</div>
+
+  <div class="chart-toggle">
+
+    <button type="button" id="btn-median" class="active">Median</button>
+
+    <button type="button" id="btn-range">Min / Max / p95</button>
+
+  </div>
+
+  <div class="chart-wrap">
+
+    <canvas id="runtime-chart"></canvas>
+
+  </div>
+
+  <p class="chart-note">Exact matchers only on this chart. Edit distance is much slower by design.</p>
+
+</div>
+
+
+
+<div class="table-card">
+
+  <div class="card-title">Detailed results</div>
+
+  <table class="results-table">
+
+    <thead>
+
+      <tr>
+
+        <th>Algorithm</th>
+
+        <th>Type</th>
+
+        <th class="num">Median (ms)</th>
+
+        <th class="num">Min</th>
+
+        <th class="num">Max</th>
+
+        <th class="num">p95</th>
+
+        <th class="num">Matches</th>
+
+      </tr>
+
+    </thead>
+
+    <tbody>
+
+      {% for row in benchmark.matcher_rows %}
+
+      <tr class="{% if row.is_best_exact or row.is_best_approx %}row-winner{% endif %}{% if row.match_kind == 'approximate' %} row-approx{% endif %}">
+
+        <td>
+
+          <span class="algo-dot" data-algo="{{ row.algorithm }}"></span>
+
+          {{ row.algorithm_name or row.algorithm }}
+
+          {% if row.is_best_exact or row.is_best_approx %}<span class="badge-winner">best</span>{% endif %}
+
+        </td>
+
+        <td>
+
+          {% if row.match_kind == 'approximate' %}
+
+          <span class="badge-approx">approximate</span>
+
+          {% else %}
+
+          <span class="badge-exact">exact</span>
+
+          {% endif %}
+
+        </td>
+
+        <td class="num {% if row.is_best_exact %}num-best{% endif %}">{{ "%.2f"|format(row.time_ms_median) }}</td>
+
+        <td class="num">{{ "%.2f"|format(row.time_ms_min) }}</td>
+
+        <td class="num">{{ "%.2f"|format(row.time_ms_max) }}</td>
+
+        <td class="num">{% if row.time_ms_p95 is not none %}{{ "%.2f"|format(row.time_ms_p95) }}{% else %}—{% endif %}</td>
+
+        <td class="num">{{ row.match_count }}</td>
+
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+
+  </table>
+
+  <p class="chart-note" style="margin-top:12px">* Approximate matches within edit distance {{ meta.max_edits }}.</p>
+
+</div>
+
+
+
+{% if benchmark.match_positions %}
+
+<div class="match-card">
+
+  <div class="card-title">Match locations (KMP sample)</div>
+
+  {% for pattern, positions in benchmark.match_positions.items() %}
+
+  <div style="margin-bottom:12px">
+
+    <strong class="mono">{{ pattern }}</strong>
+
+    <div class="pos-strip">
+
+      {% for pos in positions[:20] %}
+
+      <span class="pos-chip">{{ pos }}</span>
+
+      {% endfor %}
+
+      {% if positions | length > 20 %}
+
+      <span class="pos-chip">+{{ positions | length - 20 }} more</span>
+
+      {% endif %}
+
+    </div>
+
+  </div>
+
+  {% endfor %}
+
+</div>
+
+{% endif %}
+
+
+
+{% endif %}
+
+
+
+<nav class="page-nav page-nav--workspace" aria-label="Workspace sections">
+
+  <span class="page-nav-label">Jump to</span>
+
+  <a class="btn-secondary" href="{{ url_for('upload') }}">Upload</a>
+
+  <a class="btn-secondary" href="{{ url_for('compression') }}">Compression</a>
+
+  <a class="btn-secondary" href="{{ url_for('analysis') }}">Analysis</a>
+
+</nav>
+
+{% endblock %}
+
+
+
+{% block js %}
+
+{% if has_benchmark %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+
+  const BENCHMARK = {{ benchmark | tojson }};
+
+  const META = {{ meta | tojson }};
+
+</script>
+
+<script src="{{ url_for('static', filename='js/pattern.js') }}"></script>
+
+{% endif %}
+
+{% endblock %}
+
+

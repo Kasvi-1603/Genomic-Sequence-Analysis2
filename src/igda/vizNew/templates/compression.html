@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Compression{% endblock %}
+
+{% block css %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/compression.css') }}" />
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<header class="page-header">
+
+  <h1 class="page-title">Compression results</h1>
+
+  <p class="page-sub">
+
+    {% if has_benchmark %}Huffman coding vs Run-Length Encoding · same input{% else %}
+
+    Compare Huffman and RLE compression on your uploaded sequence.{% endif %}
+
+  </p>
+
+</header>
+
+
+
+{% if not has_benchmark %}
+
+{% include "_empty_benchmark.html" %}
+
+{% else %}
+
+
+
+<div class="codec-grid">
+
+  {% for codec in benchmark.compression_rows %}
+
+  <div class="codec-card {% if codec.is_best %}best{% endif %} {% if codec.algorithm == 'huffman' %}codec-huffman{% else %}codec-rle{% endif %}">
+
+    {% if codec.is_best %}<span class="codec-badge">★ Best</span>{% endif %}
+
+    <h3>{{ (codec.compression_name or codec.algorithm) | upper }}</h3>
+
+    <div class="codec-saved">{{ "%.1f"|format(codec.percent_saved) }}% saved</div>
+
+    <div class="codec-stats">
+
+      <div><span>Original</span><strong>{{ "{:,}".format(codec.original_bytes) }} B</strong></div>
+
+      <div><span>Compressed</span><strong>{{ "{:,}".format(codec.compressed_bytes) }} B</strong></div>
+
+      <div><span>Time</span><strong>{{ "%.2f"|format(codec.time_ms_median) }} ms</strong></div>
+
+    </div>
+
+  </div>
+
+  {% endfor %}
+
+</div>
+
+
+
+{% if compression_artifacts %}
+
+<div class="table-card">
+
+  <div class="card-title">Compressed artifacts — download</div>
+
+  <table class="results-table compression-artifacts-table">
+
+    <thead>
+
+      <tr>
+
+        <th>Algorithm</th>
+
+        <th class="num">Original</th>
+
+        <th class="num">Compressed</th>
+
+        <th class="num">Ratio</th>
+
+        <th class="num">Runtime</th>
+
+        <th class="num">Space saved</th>
+
+        <th></th>
+
+      </tr>
+
+    </thead>
+
+    <tbody>
+
+      {% for art in compression_artifacts %}
+
+      <tr>
+
+        <td>{{ art.algorithm_name or art.algorithm }}</td>
+
+        <td class="num">{{ "{:,}".format(art.original_size) }} B</td>
+
+        <td class="num">{{ "{:,}".format(art.compressed_size) }} B</td>
+
+        <td class="num">{{ "%.2f"|format(art.compression_ratio) }}×</td>
+
+        <td class="num">{{ "%.2f"|format(art.compression_time_ms) }} ms</td>
+
+        <td class="num">{{ "%.1f"|format(art.space_saved_percent) }}%</td>
+
+        <td>
+
+          <a class="btn-secondary btn-secondary--compact" href="{{ art.download_route }}">Download compressed file</a>
+
+        </td>
+
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+
+  </table>
+
+  <p class="field-hint">Plain-text JSON (.txt) — open in Notepad or any editor. Huffman: codebook + bitstring; RLE: run-length pairs.</p>
+
+</div>
+
+{% endif %}
+
+
+
+<div class="chart-card">
+
+  <div class="card-title">Bytes comparison</div>
+
+  <div class="chart-wrap">
+
+    <canvas id="compression-chart"></canvas>
+
+  </div>
+
+</div>
+
+
+
+{% set huffman = benchmark.compression_rows | selectattr('algorithm', 'equalto', 'huffman') | first %}
+
+{% if huffman and huffman.codebook %}
+
+<div class="table-card">
+
+  <div class="card-title">Huffman code table (top symbols)</div>
+
+  <table class="results-table">
+
+    <thead>
+
+      <tr><th>Symbol</th><th class="num">Freq</th><th>Code</th><th class="num">Bits</th></tr>
+
+    </thead>
+
+    <tbody>
+
+      {% for symbol, code in huffman.codebook.items() | list | sort(attribute='1') %}
+
+      {% if loop.index <= 16 %}
+
+      <tr>
+
+        <td class="mono">{{ symbol if symbol != ' ' else '·space·' }}</td>
+
+        <td class="num">{{ huffman.frequencies.get(symbol, 0) }}</td>
+
+        <td class="mono">{{ code }}</td>
+
+        <td class="num">{{ code | length }}</td>
+
+      </tr>
+
+      {% endif %}
+
+      {% endfor %}
+
+    </tbody>
+
+  </table>
+
+</div>
+
+
+
+<div class="chart-card">
+
+  <div class="card-title">Huffman tree</div>
+
+  <div id="huffman-tree"></div>
+
+</div>
+
+{% endif %}
+
+
+
+<div class="chart-card">
+
+  <div class="card-title">RLE — run symbol counts</div>
+
+  <div class="chart-wrap">
+
+    <canvas id="rle-chart"></canvas>
+
+  </div>
+
+</div>
+
+
+
+{% endif %}
+
+
+
+<nav class="page-nav page-nav--workspace" aria-label="Workspace sections">
+
+  <span class="page-nav-label">Jump to</span>
+
+  <a class="btn-secondary" href="{{ url_for('upload') }}">Upload</a>
+
+  <a class="btn-secondary" href="{{ url_for('pattern') }}">Matching</a>
+
+  <a class="btn-secondary" href="{{ url_for('analysis') }}">Analysis</a>
+
+</nav>
+
+{% endblock %}
+
+
+
+{% block js %}
+
+{% if has_benchmark %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+
+<script>const BENCHMARK = {{ benchmark | tojson }};</script>
+
+<script src="{{ url_for('static', filename='js/compression.js') }}"></script>
+
+{% endif %}
+
+{% endblock %}
+
+

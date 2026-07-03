@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>IGDA — {% block title %}Dashboard{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}" />
+
+  {% if current_step != 'home' %}
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/workspace.css') }}" />
+
+  {% endif %}
+
+  {% block css %}{% endblock %}
+
+</head>
+
+<body class="{% if current_step == 'home' %}page-home{% else %}page-workspace{% endif %}">
+
+  <aside class="sidebar">
+
+    <div class="sidebar-brand">
+
+      <span class="brand-name">IGDA</span>
+
+      <span class="brand-sub">Genomic anomaly detection</span>
+
+    </div>
+
+
+
+    <nav class="sidebar-nav" aria-label="Main navigation">
+
+      <a class="nav-item {% if current_step == 'home' %}active{% endif %}" href="{{ url_for('home') }}">
+
+        <span class="nav-icon" aria-hidden="true">◆</span>
+
+        Home
+
+      </a>
+
+      <a class="nav-item {% if current_step == 'upload' %}active{% endif %}" href="{{ url_for('upload') }}">
+
+        <span class="nav-icon" aria-hidden="true">↑</span>
+
+        Upload
+
+      </a>
+
+      <a class="nav-item {% if current_step == 'pattern' %}active{% endif %}" href="{{ url_for('pattern') }}">
+
+        <span class="nav-icon" aria-hidden="true">⊞</span>
+
+        Pattern matching
+
+        {% if has_active_benchmark %}<span class="nav-badge" title="Results loaded">●</span>{% endif %}
+
+      </a>
+
+      <a class="nav-item {% if current_step == 'compression' %}active{% endif %}" href="{{ url_for('compression') }}">
+
+        <span class="nav-icon" aria-hidden="true">⊟</span>
+
+        Compression
+
+        {% if has_active_benchmark %}<span class="nav-badge" title="Results loaded">●</span>{% endif %}
+
+      </a>
+
+      <a class="nav-item {% if current_step == 'analysis' %}active{% endif %}" href="{{ url_for('analysis') }}">
+
+        <span class="nav-icon" aria-hidden="true">◈</span>
+
+        Analysis
+
+        {% if has_active_benchmark %}<span class="nav-badge" title="Results loaded">●</span>{% endif %}
+
+      </a>
+
+    </nav>
+
+
+
+    {% if current_step != 'home' %}
+
+    <div class="sidebar-session">
+
+      <div class="sidebar-session-label">Workspace</div>
+
+      {% if session.get('input_meta') or has_active_benchmark %}
+
+      <p class="sidebar-session-status sidebar-session-status--ready">Benchmark data loaded — all pages are available.</p>
+
+      {% else %}
+
+      <p class="sidebar-session-status">Upload a sequence to populate results pages.</p>
+
+      {% endif %}
+
+      {% if session.get('input_meta') or has_active_benchmark %}
+
+      <a class="sidebar-reset" href="{{ url_for('reset') }}">Clear session &amp; start fresh</a>
+
+      {% endif %}
+
+    </div>
+
+    {% endif %}
+
+
+
+    {% if session.get('input_meta') %}
+
+    <div class="sidebar-meta">
+
+      <div class="meta-label">Current input</div>
+
+      <div class="meta-value" title="{{ session.input_meta.filename }}">{{ session.input_meta.filename }}</div>
+
+      <div class="meta-value">{{ "{:,}".format(session.input_meta.length) }} chars</div>
+
+      <div class="meta-value">{{ session.input_meta.patterns | length }} pattern(s)</div>
+
+    </div>
+
+    {% endif %}
+
+  </aside>
+
+
+
+  <main class="main-content{% block main_class %}{% endblock %}">
+
+    {% if current_step != 'home' %}
+
+    <nav class="workspace-tabs" aria-label="Section navigation">
+
+      <a class="workspace-tab {% if current_step == 'upload' %}active{% endif %}" href="{{ url_for('upload') }}">Upload</a>
+
+      <a class="workspace-tab {% if current_step == 'pattern' %}active{% endif %}" href="{{ url_for('pattern') }}">Matching</a>
+
+      <a class="workspace-tab {% if current_step == 'compression' %}active{% endif %}" href="{{ url_for('compression') }}">Compression</a>
+
+      <a class="workspace-tab {% if current_step == 'analysis' %}active{% endif %}" href="{{ url_for('analysis') }}">Analysis</a>
+
+    </nav>
+
+    {% endif %}
+
+
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+
+      {% if messages %}
+
+        {% for category, message in messages %}
+
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+
+        {% endfor %}
+
+      {% endif %}
+
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+  </main>
+
+
+
+  {% block js %}{% endblock %}
+
+  {% if current_step != 'home' %}
+
+  <script>window.BENCHMARK_WORKSPACE_ID = {{ benchmark_workspace_id | tojson }};</script>
+
+  <script src="{{ url_for('static', filename='js/benchmark-session.js') }}"></script>
+
+  {% endif %}
+
+</body>
+
+</html>
+
+

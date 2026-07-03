@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% block title %}Upload{% endblock %}
+
+{% block main_class %} main-content--upload{% endblock %}
+
+{% block css %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/upload.css') }}" />
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<header class="page-header">
+
+  <h1 class="page-title">Upload &amp; configure</h1>
+
+  <p class="page-sub">Load any FASTA or plain text, set motifs, then run the full benchmark pipeline.</p>
+
+</header>
+
+
+
+{% if session_restored %}
+
+<div class="session-restored-banner" role="status">
+
+  <span class="session-restored-banner__title">Session restored</span>
+
+  <span class="session-restored-banner__detail">Your upload, patterns, and benchmark results are still loaded — continue without re-running unless you change inputs.</span>
+
+</div>
+
+{% endif %}
+
+
+
+{% if has_benchmark %}
+
+<section class="session-results-panel" aria-label="Loaded benchmark results">
+
+  <h2 class="session-results-panel__title">Loaded benchmark</h2>
+
+  {% if benchmark_status.get('lastRunAt') %}
+
+  <p class="session-results-panel__meta">Last run: {{ benchmark_status.lastRunAt[:19] | replace('T', ' ') }} UTC</p>
+
+  {% endif %}
+
+  <div class="session-results-panel__links">
+
+    <a class="btn-secondary" href="{{ url_for('pattern') }}">Matching results</a>
+
+    <a class="btn-secondary" href="{{ url_for('compression') }}">Compression</a>
+
+    <a class="btn-secondary" href="{{ url_for('analysis') }}">Analysis</a>
+
+  </div>
+
+  {% if benchmark_summary and benchmark_summary.best_compression %}
+
+  <p class="session-results-panel__highlight">
+
+    Best compression: <strong>{{ (benchmark_summary.best_compression.algorithm or '') | upper }}</strong>
+
+    — {{ "%.1f"|format(benchmark_summary.best_compression.percent_saved) }}% saved
+
+  </p>
+
+  {% endif %}
+
+  {% if compression_artifacts %}
+
+  <div class="table-card session-results-table">
+
+    <div class="card-title">Compression artifacts (download)</div>
+
+    <table class="results-table">
+
+      <thead>
+
+        <tr>
+
+          <th>Algorithm</th>
+
+          <th class="num">Ratio</th>
+
+          <th class="num">Runtime</th>
+
+          <th></th>
+
+        </tr>
+
+      </thead>
+
+      <tbody>
+
+        {% for art in compression_artifacts %}
+
+        <tr>
+
+          <td>{{ art.algorithm_name or art.algorithm }}</td>
+
+          <td class="num">{{ "%.2f"|format(art.compression_ratio) }}×</td>
+
+          <td class="num">{{ "%.2f"|format(art.compression_time_ms) }} ms</td>
+
+          <td><a class="btn-secondary btn-secondary--compact" href="{{ art.download_route }}">Download</a></td>
+
+        </tr>
+
+        {% endfor %}
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+  {% endif %}
+
+</section>
+
+{% endif %}
+
+
+
+<form id="analyse-form" class="form-card upload-form" method="post" action="{{ url_for('run') }}" enctype="multipart/form-data">
+
+  {% set input_mode = upload_state.get('input_mode', 'fasta') %}
+
+  <input type="hidden" name="input_mode" id="input_mode" value="{{ input_mode }}" />
+
+
+
+  <div class="upload-grid">
+
+    <section class="upload-panel upload-panel--input">
+
+      <h2 class="upload-panel-title">Sequence input</h2>
+
+
+
+      <div class="tabs">
+
+        <button type="button" class="tab-btn {% if input_mode == 'fasta' %}active{% endif %}" data-mode="fasta">FASTA / .txt file</button>
+
+        <button type="button" class="tab-btn {% if input_mode == 'manual' %}active{% endif %}" data-mode="manual">Manual text</button>
+
+      </div>
+
+
+
+      <div id="panel-fasta" class="upload-input-area{% if input_mode != 'fasta' %} hidden{% endif %}">
+
+        <div class="dropzone" id="dropzone">
+
+          <div class="dropzone-inner">
+
+            <span class="dropzone-icon" aria-hidden="true">↑</span>
+
+            <p class="dropzone-title">Drop your file here</p>
+
+            <p class="dropzone-hint">.fasta · .fa · .txt — or click to browse</p>
+
+          </div>
+
+          <input type="file" id="fasta_file" name="fasta_file" accept=".fasta,.fa,.fna,.faa,.txt,.seq" class="hidden" />
+
+          {% if upload_state.get('uploaded_files') and input_mode == 'fasta' %}
+
+          <div class="filename" id="fasta-filename">{{ upload_state.uploaded_files[0].name }} (session — choose a new file only to replace)</div>
+
+          {% else %}
+
+          <div class="filename hidden" id="fasta-filename"></div>
+
+          {% endif %}
+
+        </div>
+
+        <div class="field">
+
+          <label for="prefix_chars">Limit to first N characters (blank = max 50,000)</label>
+
+          <input type="number" name="prefix_chars" id="prefix_chars" min="1000" max="500000" placeholder="50000" value="{{ upload_state.get('prefix_chars', '50000') }}" />
+
+          <p class="field-hint">Large genomes are truncated automatically so benchmarks finish in seconds.</p>
+
+        </div>
+
+      </div>
+
+
+
+      <div id="panel-manual" class="upload-input-area{% if input_mode != 'manual' %} hidden{% endif %}">
+
+        <div class="field field--grow">
+
+          <label for="manual_text">Sequence text</label>
+
+          <textarea name="manual_text" id="manual_text" rows="12" placeholder="Paste raw sequence or FASTA body lines…">{{ upload_state.get('manual_text', '') }}</textarea>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <section class="upload-panel upload-panel--config">
+
+      <h2 class="upload-panel-title">Search configuration</h2>
+
+
+
+      <div class="field">
+
+        <label for="patterns-input">Patterns to search (comma-separated)</label>
+
+        <input type="text" name="patterns" id="patterns-input" value="{{ upload_state.get('patterns', 'ATG,TATAAA,GCATCG,AATAAA') }}" required />
+
+        <p class="field-hint">Patterns under 6 bases (e.g. ATG) are used for exact matching only — excluded from the mutation report to avoid noise.</p>
+
+        <div class="chips">
+
+          <span class="chip" data-motif="ATG">ATG</span>
+
+          <span class="chip" data-motif="TATAAA">TATAAA</span>
+
+          <span class="chip" data-motif="GCATCG">GCATCG</span>
+
+          <span class="chip" data-motif="AATAAA">AATAAA</span>
+
+          <span class="chip" data-motif="GCGC">GCGC</span>
+
+          <span class="chip" data-motif="AAAA">AAAA</span>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="field">
+
+        <label>Max edit distance (approximate matching)</label>
+
+        <div class="radio-group">
+
+          {% set sel_edits = upload_state.get('max_edits', 1) %}
+
+          {% for v in [0, 1, 2, 3] %}
+
+          <label>
+
+            <input type="radio" name="max_edits" value="{{ v }}" {% if v == sel_edits %}checked{% endif %} />
+
+            {{ v }}
+
+            {% if v == 0 %}(exact only){% elif v == 1 %}(SNPs){% elif v == 2 %}(indels){% else %}(variants){% endif %}
+
+          </label>
+
+          {% endfor %}
+
+        </div>
+
+      </div>
+
+
+
+      <div class="upload-actions">
+
+        <button type="submit" class="btn-primary btn-primary--wide" id="analyse-btn">Run full benchmark</button>
+
+      </div>
+
+      <div class="loading-row hidden" id="loading">
+
+        <span class="spinner"></span>
+
+        Running matchers and compression (typically 10–30s)…
+
+      </div>
+
+    </section>
+
+  </div>
+
+</form>
+
+{% endblock %}
+
+
+
+{% block js %}
+
+<script>
+
+  window.UPLOAD_STATE = {{ upload_state | tojson }};
+
+  window.SESSION_RESTORED = {{ session_restored | tojson }};
+
+  window.BENCHMARK_STATUS = {{ benchmark_status | tojson }};
+
+</script>
+
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+
+{% endblock %}
+

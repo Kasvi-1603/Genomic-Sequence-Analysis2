@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HELIX AI - Home</title>
+  <style>
+    :root {
+      --neon-blue: #00f2ff;
+      --neon-purple: #bc13fe;
+      --bg-a: #1a1a2e;
+      --bg-b: #0e1117;
+      --glass-bg: rgba(255,255,255,0.05);
+      --glass-border: rgba(255,255,255,0.12);
+      --text: #e8eef8;
+      --muted: #a6b0c3;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, Segoe UI, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 50% 40%, var(--bg-a) 0%, var(--bg-b) 100%);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+    .card {
+      width: min(960px, 96vw);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(8px);
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+    h1 { margin: 0 0 8px; color: var(--neon-blue); text-shadow: 0 0 12px rgba(0,242,255,0.6); }
+    p { margin: 6px 0; color: var(--muted); }
+    .canvas-wrap {
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.02);
+      padding: 8px;
+    }
+    label { display: block; margin-top: 10px; font-weight: 600; }
+    select {
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.28);
+      color: var(--text);
+    }
+    .btn {
+      margin-top: 14px;
+      width: 100%;
+      padding: 11px;
+      border: 0;
+      border-radius: 9px;
+      color: #fff;
+      font-weight: 700;
+      background: linear-gradient(45deg, #4b0082, #0000ff);
+      cursor: pointer;
+    }
+    .btn:hover { box-shadow: 0 0 15px rgba(188,19,254,0.5); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="hero">
+      <div>
+        <h1>HELIX AI</h1>
+        <p>Choose your input mode first, then continue to Analytics.</p>
+        <p>In Analytics you can choose algorithms/compression and run comparisons.</p>
+        <form method="post">
+          <label for="input_mode">Input mode</label>
+          <select id="input_mode" name="input_mode">
+            <option value="fasta_only" {% if selected_mode == "fasta_only" %}selected{% endif %}>FASTA only</option>
+            <option value="manual_only" {% if selected_mode == "manual_only" %}selected{% endif %}>Manual strings only</option>
+            <option value="mixed" {% if selected_mode == "mixed" %}selected{% endif %}>FASTA + Manual strings</option>
+          </select>
+          <button class="btn" type="submit">Continue to Analytics</button>
+        </form>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="dnaCanvas" style="width:100%; height:220px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("dnaCanvas");
+    const ctx = canvas.getContext("2d");
+    let t = 0;
+    function draw() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      ctx.strokeStyle = "#00f2ff";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < rect.width; i += 18) {
+        const y1 = 80 + Math.sin(t + i * 0.03) * 34;
+        const y2 = 80 + Math.sin(t + i * 0.03 + Math.PI) * 34;
+        ctx.beginPath(); ctx.arc(i, y1, 2.8, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(i, y2, 2.8, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalAlpha = 0.22;
+        ctx.beginPath(); ctx.moveTo(i, y1); ctx.lineTo(i, y2); ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      t += 0.055;
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>
+

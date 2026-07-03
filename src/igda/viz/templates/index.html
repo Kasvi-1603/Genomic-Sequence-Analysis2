@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HELIX AI - Flask Dashboard</title>
+  <style>
+    :root {
+      --neon-blue: #00f2ff;
+      --neon-purple: #bc13fe;
+      --neon-green: #39ff14;
+      --bg-a: #1a1a2e;
+      --bg-b: #0e1117;
+      --glass-bg: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --text: #e8eef8;
+      --muted: #a6b0c3;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 50% 35%, var(--bg-a) 0%, var(--bg-b) 100%);
+    }
+    .wrap {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      min-height: 100vh;
+      gap: 18px;
+      padding: 18px;
+    }
+    .card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 16px;
+      backdrop-filter: blur(8px);
+      margin-bottom: 14px;
+    }
+    h1, h2, h3 { margin: 0 0 12px 0; }
+    .neon {
+      color: var(--neon-blue);
+      text-shadow: 0 0 10px rgba(0, 242, 255, 0.55);
+    }
+    .muted { color: var(--muted); }
+    label { display: block; margin: 10px 0 6px; font-size: 14px; color: #d8e2f5; }
+    input, select, textarea {
+      width: 100%;
+      background: rgba(0,0,0,0.28);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    select[multiple] { min-height: 100px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 9px;
+      color: white;
+      font-weight: 600;
+      background: linear-gradient(45deg, #4b0082, #0000ff);
+      cursor: pointer;
+    }
+    .btn:hover { box-shadow: 0 0 15px rgba(188, 19, 254, 0.55); }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .metric { padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.04); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.13);
+    }
+    th { color: var(--neon-blue); font-weight: 600; }
+    .pill { padding: 4px 8px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,0.12); }
+    .ok { color: #9effa3; }
+    .warn { color: #ffd27a; }
+    .err { color: #ff8a8a; }
+    ul { margin-top: 6px; }
+    .home-hero {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+    .canvas-wrap {
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.02);
+      padding: 8px;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside>
+      <div class="card">
+        <h2 class="neon">HELIX AI</h2>
+        <p class="muted">Flask visualization powered by real benchmark results.</p>
+        <p><a href="/" style="color:#00f2ff;">Back to Home</a></p>
+      </div>
+
+      <form method="post" class="card">
+        <h3 class="neon">Configuration</h3>
+
+        <label>Input mode</label>
+        <select name="input_mode" id="input_mode">
+          <option value="fasta_only" {% if form.input_mode == "fasta_only" %}selected{% endif %}>FASTA only</option>
+          <option value="manual_only" {% if form.input_mode == "manual_only" %}selected{% endif %}>Manual strings only</option>
+          <option value="mixed" {% if form.input_mode == "mixed" %}selected{% endif %}>FASTA + Manual strings</option>
+        </select>
+
+        <div id="fasta_group">
+          <label>FASTA path</label>
+          <input name="fasta_path" value="{{ form.fasta_path }}" />
+
+          <div class="row2">
+            <div>
+              <label>First N chars</label>
+              <input type="number" min="1000" name="prefix_chars" value="{{ form.prefix_chars }}" />
+            </div>
+            <div>
+              <label>FASTA run mode</label>
+              <select name="run_mode" id="run_mode">
+                <option value="single" {% if form.run_mode == "single" %}selected{% endif %}>single slice</option>
+                <option value="multiple" {% if form.run_mode == "multiple" %}selected{% endif %}>multiple slices</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="fasta_multi_group" class="row2">
+            <div>
+              <label>FASTA segment count</label>
+              <input type="number" min="1" name="segment_count" value="{{ form.segment_count }}" />
+            </div>
+            <div>
+              <label>Chars per FASTA segment</label>
+              <input type="number" min="100" name="segment_length" value="{{ form.segment_length }}" />
+            </div>
+          </div>
+        </div>
+
+        <div id="manual_group">
+          <label>Manual strings (one string per line)</label>
+          <textarea name="manual_strings" rows="5">{{ form.manual_strings }}</textarea>
+        </div>
+
+        <label>Patterns (comma-separated)</label>
+        <input name="patterns" value="{{ form.patterns }}" />
+
+        <label>Algorithms (choose one or many)</label>
+        <select name="selected_algorithms" multiple>
+          {% for a in algo_ids %}
+          <option value="{{ a }}" {% if a in form.selected_algorithms %}selected{% endif %}>{{ a }}</option>
+          {% endfor %}
+        </select>
+
+        <label>Compression methods</label>
+        <select name="selected_compressions" multiple>
+          {% for c in comp_ids %}
+          <option value="{{ c }}" {% if c in form.selected_compressions %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+
+        <div class="row2">
+          <div>
+            <label>Warmup</label>
+            <input type="number" min="0" name="warmup" value="{{ form.warmup }}" />
+          </div>
+          <div>
+            <label>Trials</label>
+            <input type="number" min="1" name="trials" value="{{ form.trials }}" />
+          </div>
+        </div>
+
+        <label>Max edits</label>
+        <input type="number" min="0" name="max_edits" value="{{ form.max_edits }}" />
+
+        <button class="btn" type="submit">Run Benchmark</button>
+      </form>
+    </aside>
+
+    <main>
+      {% if error %}
+      <div class="card"><strong class="err">Error:</strong> {{ error }}</div>
+      {% endif %}
+
+      <div class="card">
+        <div class="home-hero">
+          <div>
+            <h2 class="neon">Home</h2>
+            <p class="muted">Compare selected algorithms on the same text slice(s), measure timing, and evaluate compression savings.</p>
+            <p class="muted">Use FASTA only, manual strings only, or both together. Manual mode ignores FASTA slice controls.</p>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="dnaCanvas" style="width:100%; height:180px;"></canvas>
+          </div>
+        </div>
+      </div>
+
+      {% if case_summary %}
+      <div class="metrics">
+        <div class="metric">
+          <div class="muted">Best exact overall</div>
+          <div class="ok">
+            {% if best_exact_overall %}
+              {{ best_exact_overall[0] }} (avg {{ "%.3f"|format(best_exact_overall[1]) }} ms)
+            {% else %}N/A{% endif %}
+          </div>
+        </div>
+        <div class="metric">
+          <div class="muted">Best approximate overall</div>
+          <div class="ok">
+            {% if best_approx_overall %}
+              {{ best_approx_overall[0] }} (avg {{ "%.3f"|format(best_approx_overall[1]) }} ms)
+            {% else %}N/A{% endif %}
+          </div>
+        </div>
+        <div class="metric">
+          <div class="muted">Best compression</div>
+          <div class="ok">
+            {% if best_compression %}
+              {{ best_compression.compression_id }} (saved {{ "%.2f"|format(best_compression.percent_saved) }}%)
+            {% else %}N/A{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="neon">Case Summary</h3>
+        <table>
+          <thead><tr><th>Case</th><th>Text length</th><th>Best exact</th><th>Best approx</th></tr></thead>
+          <tbody>
+            {% for r in case_summary %}
+            <tr>
+              <td>{{ r.case }}</td>
+              <td>{{ r.text_length }}</td>
+              <td>{{ r.best_exact }}</td>
+              <td>{{ r.best_approx }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3 class="neon">Matcher Results</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Case</th><th>Algorithm</th><th>Kind</th><th>Median ms</th><th>Min</th><th>Max</th><th>P95</th><th>Match count</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in matcher_rows %}
+            <tr>
+              <td>{{ r.case }}</td>
+              <td>{{ r.algorithm_id }}</td>
+              <td><span class="pill">{{ r.match_kind }}</span></td>
+              <td>{{ "%.3f"|format(r.time_ms_median) }}</td>
+              <td>{{ "%.3f"|format(r.time_ms_min) }}</td>
+              <td>{{ "%.3f"|format(r.time_ms_max) }}</td>
+              <td>{% if r.time_ms_p95 is not none %}{{ "%.3f"|format(r.time_ms_p95) }}{% else %}-{% endif %}</td>
+              <td>{{ r.match_count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3 class="neon">Compression Results</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Case</th><th>Method</th><th>Original bytes</th><th>Compressed bytes</th><th>Ratio</th><th>Saved %</th><th>Median ms</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in compression_rows %}
+            <tr>
+              <td>{{ r.case }}</td>
+              <td>{{ r.compression_id }}</td>
+              <td>{{ r.original_bytes }}</td>
+              <td>{{ r.compressed_bytes }}</td>
+              <td>{{ "%.4f"|format(r.ratio) }}</td>
+              <td class="{% if r.percent_saved > 0 %}ok{% elif r.percent_saved < 0 %}err{% else %}warn{% endif %}">
+                {{ "%.2f"|format(r.percent_saved) }}
+              </td>
+              <td>{{ "%.3f"|format(r.time_ms_median) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if notes %}
+      <div class="card">
+        <h3 class="neon">Notes</h3>
+        <ul>
+          {% for n in notes %}
+          <li>{{ n }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% endif %}
+    </main>
+  </div>
+  <script>
+    function updateInputVisibility() {
+      const mode = document.getElementById("input_mode").value;
+      const runMode = document.getElementById("run_mode").value;
+      const showFasta = mode === "fasta_only" || mode === "mixed";
+      const showManual = mode === "manual_only" || mode === "mixed";
+      document.getElementById("fasta_group").classList.toggle("hidden", !showFasta);
+      document.getElementById("manual_group").classList.toggle("hidden", !showManual);
+      document.getElementById("fasta_multi_group").classList.toggle("hidden", !(showFasta && runMode === "multiple"));
+    }
+    document.getElementById("input_mode").addEventListener("change", updateInputVisibility);
+    document.getElementById("run_mode").addEventListener("change", updateInputVisibility);
+    updateInputVisibility();
+
+    const canvas = document.getElementById("dnaCanvas");
+    const ctx = canvas.getContext("2d");
+    let t = 0;
+    function draw() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      ctx.strokeStyle = "#00f2ff";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < rect.width; i += 18) {
+        const y1 = 60 + Math.sin(t + i * 0.03) * 28;
+        const y2 = 60 + Math.sin(t + i * 0.03 + Math.PI) * 28;
+        ctx.beginPath(); ctx.arc(i, y1, 2.8, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(i, y2, 2.8, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalAlpha = 0.22;
+        ctx.beginPath(); ctx.moveTo(i, y1); ctx.lineTo(i, y2); ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      t += 0.055;
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>
+

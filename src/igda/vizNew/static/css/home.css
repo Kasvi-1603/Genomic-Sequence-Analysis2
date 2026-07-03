@@ -1,0 +1,220 @@
+/* Cinematic home — Three.js DNA left, static copy right */
+
+.main-content--home {
+  padding: 0;
+  max-width: none;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.main-content--home .flash {
+  display: none;
+}
+
+.home-cinema {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.home-stage-box {
+  min-height: 100vh;
+  background: var(--bg-base);
+}
+
+.home-stage-inner.home-split {
+  display: grid;
+  grid-template-columns: 1fr min(440px, 42vw);
+  min-height: 100vh;
+  width: 100%;
+}
+
+.home-anim-panel {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Right column — static project explanation */
+.home-copy {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  padding: 48px 48px 48px 36px;
+  background: var(--bg-surface);
+  border-left: 1px solid rgba(226, 224, 240, 0.08);
+}
+
+.home-kicker {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 14px;
+}
+
+.home-display {
+  font-family: "JetBrains Mono", monospace;
+  font-size: clamp(2.2rem, 3.6vw, 3.4rem);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  margin-bottom: 22px;
+}
+
+.home-lead {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+  max-width: 36ch;
+}
+
+.home-accent-rose {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.home-points {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 38ch;
+}
+
+.home-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.home-point-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 7px;
+  border-radius: 50%;
+}
+
+.home-point-dot--teal {
+  background: var(--teal);
+  box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.18);
+}
+
+.home-point-dot--crimson {
+  background: var(--deep-red);
+  box-shadow: 0 0 0 3px rgba(142, 13, 60, 0.2);
+}
+
+.home-point-dot--amber {
+  background: var(--amber);
+  box-shadow: 0 0 0 3px rgba(239, 159, 39, 0.18);
+}
+
+.home-point-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.home-point-text strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.home-note {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-tertiary);
+  margin-bottom: 32px;
+  max-width: 34ch;
+  padding-left: 12px;
+  border-left: 2px solid rgba(93, 202, 165, 0.35);
+}
+
+.home-cta {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--bg-base);
+  background: var(--primary);
+  padding: 12px 22px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 20px rgba(253, 161, 162, 0.28);
+}
+
+.home-cta:hover {
+  background: #ffb8b9;
+  box-shadow: 0 6px 28px rgba(253, 161, 162, 0.38);
+}
+
+.home-cta:focus-visible {
+  outline: 2px solid var(--teal-light);
+  outline-offset: 3px;
+}
+
+/* Home-only sidebar accent — richer colour without touching the helix panel */
+body.page-home .sidebar {
+  background: #221c4a;
+  border-right-color: rgba(142, 13, 60, 0.22);
+}
+
+body.page-home .sidebar::after {
+  background: rgba(142, 13, 60, 0.2);
+}
+
+body.page-home .sidebar-brand {
+  background: rgba(142, 13, 60, 0.15);
+  border-color: rgba(142, 13, 60, 0.22);
+}
+
+body.page-home .nav-item:hover {
+  border-left-color: rgba(239, 159, 39, 0.5);
+  background: rgba(142, 13, 60, 0.1);
+}
+
+body.page-home .nav-item.active {
+  border-left-color: var(--deep-red);
+  background: rgba(142, 13, 60, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 4px 14px rgba(0, 0, 0, 0.2),
+    0 0 24px rgba(142, 13, 60, 0.12);
+}
+
+body.page-home .sidebar-meta {
+  border-color: rgba(239, 159, 39, 0.15);
+  background: rgba(42, 36, 96, 0.92);
+}
+
+@media (max-width: 900px) {
+  .home-stage-inner.home-split {
+    grid-template-columns: 1fr;
+    grid-template-rows: 55vh auto;
+  }
+
+  .home-anim-panel {
+    min-height: 55vh;
+  }
+
+  .dna-helix-panel {
+    min-height: 55vh;
+  }
+
+  .home-copy {
+    padding: 28px 24px 36px;
+    border-left: none;
+    border-top: 1px solid rgba(226, 224, 240, 0.08);
+  }
+}

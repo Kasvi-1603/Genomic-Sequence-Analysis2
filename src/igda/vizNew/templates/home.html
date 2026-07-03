@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block main_class %} main-content--home{% endblock %}
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dna-helix.css') }}" />
+{% endblock %}
+
+{% block content %}
+<section class="home-cinema" aria-label="IGDA project overview">
+  <div class="home-stage-box">
+    <div class="home-stage-inner home-split">
+
+      <div class="home-anim-panel dna-helix-panel">
+        <canvas id="dna-helix" aria-hidden="true"></canvas>
+      </div>
+
+      <div class="home-copy">
+        <p class="home-kicker">Intelligent Genome &amp; Data Anomaly Detection</p>
+        <h1 class="home-display">IGDA</h1>
+
+        <p class="home-lead">
+          Benchmark string-matching and compression algorithms on <span class="home-accent-rose">your own</span>
+          genomic sequence — same input, measured timings, empirical winners.
+        </p>
+
+        <ul class="home-points">
+          <li class="home-point">
+            <span class="home-point-dot home-point-dot--teal" aria-hidden="true"></span>
+            <span class="home-point-text">
+              <strong>Exact matching</strong> — Naive, KMP, Horspool, Aho–Corasick on identical data
+            </span>
+          </li>
+          <li class="home-point">
+            <span class="home-point-dot home-point-dot--crimson" aria-hidden="true"></span>
+            <span class="home-point-text">
+              <strong>Approximate search</strong> — edit-distance for SNPs and noisy reads
+            </span>
+          </li>
+          <li class="home-point">
+            <span class="home-point-dot home-point-dot--amber" aria-hidden="true"></span>
+            <span class="home-point-text">
+              <strong>Compression</strong> — Huffman vs RLE: bytes saved and time compared fairly
+            </span>
+          </li>
+        </ul>
+
+        <p class="home-note">
+          Built for DAA coursework: theory, timing trials, and reproducible results from a single upload.
+        </p>
+
+        <a class="home-cta" href="{{ url_for('upload') }}">Upload sequence &amp; run benchmark →</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block js %}
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" crossorigin="anonymous"></script>
+<script src="{{ url_for('static', filename='js/helix.js') }}"></script>
+{% endblock %}
