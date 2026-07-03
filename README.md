@@ -135,6 +135,24 @@ Features included:
 - Manual: one string per line, each line is its own case.
 - Mixed: FASTA-derived cases and manual cases in one run (separate rows).
 
+## Deploy (free, public URL — Render)
+
+The repo includes [`render.yaml`](render.yaml) for a one-click [Render](https://render.com) Blueprint deploy of the vizNew app:
+
+1. Push this repo to GitHub (already done if you're reading this from the deployed copy).
+2. On Render: **New > Blueprint** → connect the repo → Render reads `render.yaml` automatically.
+3. Deploy. Render installs with `pip install -e ".[deploy]"` (adds `gunicorn`) and serves via:
+
+   ```text
+   gunicorn -w 2 --timeout 120 -b 0.0.0.0:$PORT igda.vizNew.app:app
+   ```
+
+Notes:
+
+- Free plan spins the service down after ~15 min idle and cold-starts (~30-50s) on the next request — fine for occasional/demo traffic, not for guaranteed low latency.
+- Benchmark sessions are stored in the container's temp directory (`igda.vizNew.session_workspace`). A cold-start restart clears any sessions started before the spin-down, so users should re-run their benchmark if the app went idle.
+- Nothing about local development changes — `python src/igda/vizNew/app.py` still works the same on your machine (gunicorn is only used by Render).
+
 ## Run tests
 
 ```text
